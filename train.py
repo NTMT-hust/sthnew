@@ -182,6 +182,13 @@ def run():
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--focal-gamma", type=float, default=2.0,
                         help="Focal loss gamma parameter (default: 2.0). Higher values focus more on hard examples.")
+    parser.add_argument("--split-strategy", type=str, choices=['site_split', 'single_site'], 
+                        default='site_split',
+                        help="Split strategy: 'site_split' (train A, val DC, test B) or 'single_site' (train/val/test all from site A)")
+    parser.add_argument("--visualize", action="store_true", default=True,
+                        help="Automatically generate visualizations after training (default: True)")
+    parser.add_argument("--no-visualize", dest="visualize", action="store_false",
+                        help="Skip automatic visualization generation")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--cache-data", action="store_true", help="Cache extracted 301-bin spectra in the output folder.")
     parser.add_argument("--rebuild-representation", action="store_true",
@@ -266,7 +273,31 @@ def run():
     names, drug_graphs, drug_index = drug_structures(args.smiles_csv)
     ast = load_ast_edges(args.driams_root, sample_index, drug_index,
                          [*TRAIN_SITES, *VALIDATION_SITES, *TEST_SITES])
-    edge_train, edge_val, edge_test = split_sites(ast["site"])
+    
+    # Apply split strategy
+    print(f"\nUsing split strategy: {args.split_strategy}")
+    if args.split_strategy == 'site_split':
+        # Original: train on A, validate on DC, test on B
+        print("  Train: Site A | Validation: Sites D+C | Test: Site B")
+        edge_train, edge_val, edge_test = split_sites(ast["site"])
+    else:  # single_site
+        # All splits from site A only
+        print("  Train/Val/Test: All from Site A")
+        site_a_indices = [i for i, site in enumerate(ast["site"]) if site == 'A']
+        rng_split = np.random.default_rng(args.seed)
+        rng_split.shuffle(site_a_indices)
+        
+        # 70% train, 15% val, 15% test
+        n = len(site_a_indices)
+        n_train = int(0.7 * n)
+        n_val = int(0.15 * n)
+        
+        edge_train = site_a_indices[:n_train]
+        edge_val = site_a_indices[n_train:n_train + n_val]
+        edge_test = site_a_indices[n_train + n_val:]
+        
+        print(f"  Site A split: {len(edge_train)} train, {len(edge_val)} val, {len(edge_test)} test")
+    
     if not edge_train or not edge_val or not edge_test:
         raise ValueError(f"Empty requested split: train={len(edge_train)}, val={len(edge_val)}, test={len(edge_test)}")
 
@@ -524,6 +555,23 @@ def run():
     print("="*70)
     
     print(f"\nSaved checkpoint, metrics, histories, and predictions to: {args.output.resolve()}")
+    
+    # Automatic visualization
+    if args.visualize:
+        print("\n" + "="*70)
+        print("Generating visualizations...")
+        print("="*70)
+        try:
+            from visualize_results import visualize_results
+            visualize_results(args.output, args.split_strategy)
+        except ImportError as e:
+            print(f"Warning: Could not import visualization module: {e}")
+            print("You can manually generate visualizations by running:")
+            print(f"  python visualize_results.py --output-dir {args.output} --split-mode {args.split_strategy}")
+        except Exception as e:
+            print(f"Warning: Visualization failed: {e}")
+            print("You can manually generate visualizations by running:")
+            print(f"  python visualize_results.py --output-dir {args.output} --split-mode {args.split_strategy}")
 
 
 if __name__ == "__main__":

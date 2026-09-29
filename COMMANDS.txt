@@ -1,0 +1,128 @@
+================================================================
+QUICK COMMAND REFERENCE - Antibiotic Resistance Prediction
+================================================================
+
+BASIC TRAINING
+--------------
+# Site split (cross-site evaluation) - RECOMMENDED
+python train.py --split-strategy site_split --output outputs/site_split
+
+# Single site (within-site evaluation)
+python train.py --split-strategy single_site --output outputs/single_site
+
+
+RUN ALL EXPERIMENTS
+-------------------
+# Windows
+run_experiments.bat
+
+# Linux/Mac
+chmod +x run_experiments.sh
+./run_experiments.sh
+
+
+FOCAL LOSS COMPARISON
+---------------------
+# Cross-entropy baseline (gamma=0)
+python train.py --focal-gamma 0.0 --output outputs/baseline
+
+# Focal loss recommended (gamma=2)
+python train.py --focal-gamma 2.0 --output outputs/focal2
+
+# Strong focusing (gamma=5)
+python train.py --focal-gamma 5.0 --output outputs/focal5
+
+
+CUSTOM TRAINING
+---------------
+# Full custom parameters
+python train.py \
+    --split-strategy site_split \
+    --epochs 100 \
+    --focal-gamma 2.0 \
+    --learning-rate 1e-3 \
+    --batch-size 512 \
+    --latent-dim 64 \
+    --hidden-dim 128 \
+    --patience 30 \
+    --output outputs/custom
+
+# Quick test (fast)
+python train.py --epochs 5 --representation-epochs 2 --output outputs/test
+
+
+MANUAL VISUALIZATION
+--------------------
+# Generate visualizations for existing results
+python visualize_results.py \
+    --output-dir outputs/experiment1 \
+    --split-mode site_split
+
+
+COMMON OPTIONS
+--------------
+--split-strategy {site_split,single_site}  Split strategy
+--output PATH                              Output directory
+--epochs N                                 Training epochs (default: 30)
+--focal-gamma GAMMA                        Focal loss gamma (default: 2.0)
+--learning-rate LR                         Learning rate (default: 1e-3)
+--batch-size SIZE                          Batch size (default: 512)
+--latent-dim DIM                          Latent dimension (default: 64)
+--hidden-dim DIM                          Hidden dimension (default: 128)
+--patience N                              Early stopping patience (default: 100)
+--seed SEED                               Random seed (default: 42)
+--visualize / --no-visualize             Auto-visualization (default: on)
+
+
+OUTPUT FILES
+------------
+outputs/experiment_name/
+  ├── training_history.csv               # All metrics, all epochs
+  ├── metrics.json                       # Complete results
+  ├── metrics_per_drug.csv               # Per-antibiotic
+  ├── metrics_per_bacteria.csv           # Per-bacteria
+  ├── hybrid_ast_best.pt                 # Best model
+  ├── spectrum_encoder.pt                # Autoencoder
+  ├── training_curves_*.png              # Loss/metrics curves
+  ├── per_class_f1_*.png                 # Per-class F1 curves
+  ├── best_epoch_metrics_*.png           # Bar chart with labels
+  ├── per_class_comparison_*.png         # Class comparison
+  └── comprehensive_results_*.png        # All-in-one overview
+
+
+READING RESULTS
+---------------
+# Python
+import pandas as pd
+df = pd.read_csv('outputs/exp1/training_history.csv')
+print(df[['epoch', 'train_f1_macro', 'validation_f1_macro', 'test_f1_macro']])
+
+# Find best epoch
+best = df.loc[df['validation_f1_macro'].idxmax()]
+print(f"Best: Epoch {best['epoch']}, Val F1: {best['validation_f1_macro']:.4f}")
+
+
+TROUBLESHOOTING
+---------------
+# No visualizations?
+python visualize_results.py --output-dir outputs/exp1 --split-mode site_split
+
+# CUDA out of memory?
+python train.py --batch-size 256 --hidden-dim 64
+
+# Import errors?
+pip install torch numpy pandas scikit-learn matplotlib seaborn rdkit
+
+# Slow training?
+python train.py --epochs 20 --cache-data
+
+
+DOCUMENTATION
+-------------
+README_COMPLETE.md - Complete documentation (read this!)
+COMMANDS.txt       - This quick reference file
+
+
+================================================================
+For detailed information, see README_COMPLETE.md
+================================================================
