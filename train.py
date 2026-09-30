@@ -53,7 +53,7 @@ from models.hybrid_ast import HeterogeneousASTModel, smiles_graph
 from models.spectral import SpectralAutoencoder
 
 
-DEFAULT_ROOT = Path(__file__).resolve().parent.parent.parent / "DRIAMS"
+DEFAULT_ROOT = Path(__file__).resolve().parent / "archive"
 CLASS_NAMES = ["S", "R"]
 
 
@@ -283,7 +283,7 @@ def run():
     else:  # single_site
         # All splits from site A only
         print("  Train/Val/Test: All from Site A")
-        site_a_indices = [i for i, site in enumerate(ast["site"]) if site == 'A']
+        site_a_indices = [i for i, site in enumerate(ast["site"]) if site == 'DRIAMS-A']
         rng_split = np.random.default_rng(args.seed)
         rng_split.shuffle(site_a_indices)
         
