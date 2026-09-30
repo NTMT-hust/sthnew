@@ -2,7 +2,15 @@
 results/
 result*/
 output/
-outputs/
+
+# Allow outputs directory for representation models
+!outputs/
+!outputs/isolate_embeddings.npz
+!outputs/spectrum_encoder.pt
+
+# Exclude cached spectra (too large for GitHub, can be regenerated)
+outputs/site_spectra_301.npz
+
 *.zip
 
 # Python
@@ -47,6 +55,9 @@ env/
 *.h5
 *.pkl
 *.pickle
+
+# Allow specific representation models
+!outputs/spectrum_encoder.pt
 
 # Data files (uncomment if needed)
 # *.csv
